@@ -1,0 +1,30 @@
+[train_settings]
+batch_size = 32
+early_stop_patience = 5
+epochs = 250
+exp_name = "test_exp"
+k_folds = 3
+logging_per_batch = 25
+lr = 0.003
+lr_decay = 0.9
+test_size = 0.1
+valid_size = 0.1
+
+[train_settings.lr_finder_settings]
+beta = 0.98
+final_value = 10.0
+initial_value = 0.000000001
+
+[data_settings]
+cache_dir = "tests/output/logs/__cache__"
+data_dir = "tests/output/logs/__data__"
+output_dir = "tests/output/logs/__outputs__"
+weights_dir = "tests/output/logs/__weights__"
+
+[log_settings]
+backup = "False"
+backup_dir = "tests/output/logs/__backup__"
+log_dir = "tests/output/logs/__logs__"
+log_filename = "system.log"
+mlflow_dir = "tests/output/logs/__logs__/mlflow"
+weights = "tests/output/logs/__logs__/weights"

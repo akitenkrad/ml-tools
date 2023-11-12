@@ -1,0 +1,30 @@
+[train_settings]
+batch_size = 32
+early_stop_patience = 5
+epochs = 250
+exp_name = "ml_tools_log"
+k_folds = 3
+logging_per_batch = 25
+lr = 0.003
+lr_decay = 0.9
+test_size = 0.1
+valid_size = 0.1
+
+[train_settings.lr_finder_settings]
+beta = 0.98
+final_value = 10.0
+initial_value = 0.000000001
+
+[data_settings]
+cache_dir = "ml_tools_log/__cache__"
+data_dir = "ml_tools_log/__data__"
+output_dir = "ml_tools_log/__outputs__"
+weights_dir = "ml_tools_log/__weights__"
+
+[log_settings]
+backup = "False"
+backup_dir = "ml_tools_log/__backup__"
+log_dir = "ml_tools_log/__logs__"
+log_filename = "system.log"
+mlflow_dir = "ml_tools_log/__logs__/mlflow"
+weights = "ml_tools_log/__logs__/weights"
