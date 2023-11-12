@@ -46,6 +46,14 @@ def __save_google_drive_content(response: requests.Response, dst_filename: str):
 
 
 class GDriveObjects(Enum):
+    # Fonts
+    CODEM_BOLD_EXPANDED = "1x0DXiFkLz9eU2ZA1ywBG6eB6jKXIQZd7"
+    CODEM_BOLD_WIDE = "1xVhJgQMSfFx2nzU--9pfOKjH_bib7bv8"
+    CODEM_BOLD = "1nuPDPnNmu9TOaWh4q7A1t79534yWPOHL"
+    CODEM_REGULAR_EXPANDED = "1p-MvvShOmHk_AEkAfp5u3MQDYF4WC8Jc"
+    CODEM_REGULAR_WIDE = "1OC-jmcd890UCO1yLzguE22OgY8FcZPCv"
+    CODEM_REGULAR = "17prO_bjpHfcBT6faTX_TGgQkAINJUsfQ"
+
     # MS-MARCO
     MSMARCO_TRAIN_DATA = "1Ul_5hZ1znlkmjciAVkL-R6mTvN2ZPUcF"
     MSMARCO_TRAIN_ROUGE = "10JXIrBqvWenEdVkI3b0MPeddx0VHr_w-"

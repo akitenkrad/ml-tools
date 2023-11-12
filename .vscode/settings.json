@@ -1,0 +1,43 @@
+{
+    // General Settings
+    "diffEditor.ignoreTrimWhitespace": false,
+    "editor.bracketPairColorization.enabled": true,
+    "editor.cursorBlinking": "smooth",
+    "editor.cursorSmoothCaretAnimation": "on",
+    "editor.cursorStyle": "line",
+    "editor.fontFamily": "CodeM, HackGen, Consolas Menlo, Monaco, 'Courier New', monospace",
+    "editor.fontSize": 20,
+    "editor.fontLigatures": true,
+    "editor.formatOnSave": true,
+    "editor.renderControlCharacters": true,
+    "editor.renderWhitespace": "all",
+    "editor.rulers": [
+        80,
+        100,
+        120
+    ],
+    "editor.suggest.preview": true,
+    "editor.suggestSelection": "recentlyUsedByPrefix",
+    "files.eol": "\n",
+    "git.autofetch": true,
+    "workbench.iconTheme": "vs-seti",
+    // Python Settings
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true
+    },
+    "python.formatting.provider": "none",
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    },
+    // HTML Settings
+    "html.format.wrapLineLength": 0,
+    "black-formatter.args": [
+        "--line-length=120"
+    ],
+    "black-formatter.importStrategy": "fromEnvironment",
+    "flake8.args": [
+        "--max-line-lenngth=120",
+        "ignore=E203,W503"
+    ]
+}
