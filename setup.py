@@ -6,7 +6,7 @@ with open("README.md", mode="r") as f:
     long_description = f.read()
 
 version_range_max = max(sys.version_info[1], 10) + 1
-python_min_version = (3, 10, 0)
+python_min_version = (3, 11, 0)
 
 setuptools.setup(
     name="ml_tools",

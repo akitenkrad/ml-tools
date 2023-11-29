@@ -57,6 +57,7 @@ if not (Path(nltk.downloader.Downloader().download_dir) / "tokenizers" / "punkt"
 if not (Path(nltk.downloader.Downloader().download_dir) / "taggers" / "averaged_perceptron_tagger").exists():
     nltk.download("averaged_perceptron_tagger", quiet=True)
 
+
 def now() -> datetime:
     JST = timezone(timedelta(hours=9))
     return datetime.now(JST)
@@ -106,6 +107,11 @@ class MlflowWriter:
         self.__tracking_uri = filepath_to_uri(Path(tracking_uri))
         self.__logger = logger
         self.__print = lambda x: print(x) if self.__logger is None else lambda x: self.__logger.info(x)
+        self.__initialized: bool = False
+
+    @property
+    def is_initialized(self) -> bool:
+        return self.__initialized
 
     def __initialize__(self):
         self.client = MlflowClient(tracking_uri=self.__tracking_uri)
@@ -130,6 +136,7 @@ class MlflowWriter:
     def initialize(self, tags=None):
         self.__initialize__()
         self.create_new_run(tags=tags)
+        self.__initialized = True
 
     def create_new_run(self, tags=None):
         self.run = self.client.create_run(self.exp_id, tags=tags)
@@ -142,6 +149,7 @@ class MlflowWriter:
 
     def terminate(self):
         self.client.set_terminated(self.run_id, RunStatus.to_string(RunStatus.FINISHED))
+        self.__initialized = False
 
     def log_param(self, key: str, value: Any):
         self.client.log_param(self.run_id, key, value)
