@@ -320,18 +320,39 @@ class Config(object):
         return datetime.now(JST)
 
     @classmethod
-    def generate(cls, config_path: str, silent: bool = False, extra_config: dict[str, Any] = {}) -> Config:
+    def generate(cls, config_path: str = "", silent: bool = False, extra_config: dict[str, Any] = {}) -> Config:
         settings = cls(logger=Logger(""), mlflow_writer=MlflowWriter("", ""), config_path=Path(config_path))
 
-        if sys.version_info.minor < 11:
-            config: dict = toml.load(config_path)
+        if config_path:
+            if sys.version_info.minor < 11:
+                config: dict = toml.load(config_path)
+            else:
+                with open(config_path, mode="rb") as f:
+                    config = tomllib.load(f)
+            if len(extra_config) > 0:
+                for s in ["train_settings", "log_settings", "data_settings"]:
+                    if s in extra_config:
+                        config[s].update(extra_config[s])
         else:
-            with open(config_path, mode="rb") as f:
-                config = tomllib.load(f)
-        if len(extra_config) > 0:
-            for s in ["train_settings", "log_settings", "data_settings"]:
-                if s in extra_config:
-                    config[s].update(extra_config[s])
+            config = {
+                "train_settings": {
+                    "exp_name": "default_exp",
+                },
+                "data_settings": {
+                    "cache_dir": "logs/__cache__",
+                    "data_dir": "logs/__data__",
+                    "output_dir": "logs/__outputs__",
+                    "weights_dir": "logs/__weights__",
+                },
+                "log_settings": {
+                    "backup": "False",
+                    "backup_dir": "logs/__backup__",
+                    "log_dir": "logs/__logs__",
+                    "log_filename": "system.log",
+                    "mlflow_dir": "logs/__logs__/mlflow",
+                    "weights": "logs/__logs__/weights",
+                },
+            }
 
         # set attributes
         settings.timestamp = settings.now()

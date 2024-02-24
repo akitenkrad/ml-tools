@@ -28,7 +28,7 @@
     },
     "python.formatting.provider": "none",
     "editor.codeActionsOnSave": {
-        "source.organizeImports": true
+        "source.organizeImports": "explicit"
     },
     // HTML Settings
     "html.format.wrapLineLength": 0,

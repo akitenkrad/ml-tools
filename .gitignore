@@ -161,3 +161,4 @@ cython_debug/
 
 /docker-compose.yml
 /tests/output
+/logs

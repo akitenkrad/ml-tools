@@ -76,3 +76,9 @@ def test_config_generate(config):
 
     config.add_logger("logger_2")
     config.ex_logger.logger_2.info("test")
+
+
+def test_config_generate_without_toml(config):
+    config = Config.generate()
+    assert isinstance(config, Config)
+

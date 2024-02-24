@@ -50,23 +50,6 @@ setuptools.setup(
         "toml",
         "torch",
         "torchinfo",
-        "torchtext",
-        "torchvision",
         "tqdm",
     ],
-    extras_require={
-        "dev": [
-            "pytest",
-            "black",
-            "mypy",
-            "flake8",
-            "isort",
-            "jupyterlab",
-            "types-python-dateutil",
-            "types-PyYAML",
-            "types-requests",
-            "typing-extensions",
-            "types-toml",
-        ]
-    },
 )
