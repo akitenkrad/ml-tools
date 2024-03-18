@@ -22,6 +22,7 @@ import cpuinfo
 import mlflow
 import nltk
 import numpy as np
+import psutil
 import torch
 from attrdict import AttrDict
 from colorama import Fore, Style
@@ -39,17 +40,18 @@ else:
 
 from ml_tools.utils.logger import get_logger, kill_logger
 
-NVIDIA_SMI_DEFAULT_ATTRIBUTES = (
-    "index",
-    "uuid",
-    "name",
-    "timestamp",
-    "memory.total",
-    "memory.free",
-    "memory.used",
-    "utilization.gpu",
-    "utilization.memory",
-)
+
+class NvidiaSmiDefaultAttributes(Enum):
+    index = "index"
+    uuid = "uuid"
+    name = "name"
+    timestamp = "timestamp"
+    memory_total = "memory.total"
+    memory_free = "memory.free"
+    memory_used = "memory.used"
+    utilization_gpu = "utilization.gpu"
+    utilization_memory = "utilization.memory"
+
 
 if not (Path(nltk.downloader.Downloader().download_dir) / "tokenizers" / "punkt").exists():
     nltk.download("punkt", quiet=True)
@@ -438,7 +440,7 @@ class Config(object):
     @classmethod
     def describe_gpu(cls, nvidia_smi_path="nvidia-smi", no_units=True, print_fn: Callable = print):
         try:
-            keys = NVIDIA_SMI_DEFAULT_ATTRIBUTES
+            keys = [item.value for item in NvidiaSmiDefaultAttributes]
             nu_opt = "" if not no_units else ",nounits"
             cmd = f'{nvidia_smi_path} --query-gpu={",".join(keys)} --format=csv,noheader{nu_opt}'
             output = subprocess.check_output(cmd, shell=True)
@@ -494,6 +496,51 @@ class Config(object):
 
         for line in summary_str.__str__().split("\n"):
             print_fn(line)
+
+    @classmethod
+    def get_gpu_usage(
+        cls, nvidia_smi_path="nvidia-smi", no_units=True, logger: Optional[Logger] = None
+    ) -> list[dict[NvidiaSmiDefaultAttributes, str]]:
+        try:
+            keys = [item.value for item in NvidiaSmiDefaultAttributes]
+            nu_opt = "" if not no_units else ",nounits"
+            cmd = f'{nvidia_smi_path} --query-gpu={",".join(keys)} --format=csv,noheader{nu_opt}'
+            if logger:
+                logger.info(f"{cmd}")
+            output = subprocess.check_output(cmd, shell=True)
+            raw_lines = [line.strip() for line in output.decode().split("\n") if line.strip() != ""]
+            info = [
+                {get_enum_from_value(NvidiaSmiDefaultAttributes, k).value: v for k, v in zip(keys, line.split(", "))}
+                for line in raw_lines
+            ]
+            return info
+
+        except CalledProcessError:
+            if logger:
+                logger.warning("====== show GPU information =========")
+                logger.warning("  No GPU was found.")
+                logger.warning("=====================================")
+            return []
+
+    @classmethod
+    def get_cpu_ram_usage(cls, logger: Optional[Logger] = None) -> dict[str, str]:
+        try:
+            cpu_usage = psutil.cpu_percent(percpu=True)
+            ram_usage = psutil.virtual_memory()
+            return {
+                "cpu_usage": cpu_usage,
+                "ram_usage": {
+                    "total": ram_usage.total,
+                    "available": ram_usage.available,
+                    "percent": ram_usage.percent,
+                    "used": ram_usage.used,
+                    "free": ram_usage.free,
+                },
+            }
+        except Exception:
+            if logger:
+                logger.warning("Failed to get CPU RAM usage.")
+            return {}
 
     def backup_logs(self):
         """copy log directory to config.backup"""
