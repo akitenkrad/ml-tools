@@ -41,7 +41,7 @@ else:
 from ml_tools.utils.logger import get_logger, kill_logger
 
 
-class NvidiaSmiDefaultAttributes(Enum):
+class NvidiaSmiAttributes(Enum):
     index = "index"
     uuid = "uuid"
     name = "name"
@@ -51,6 +51,15 @@ class NvidiaSmiDefaultAttributes(Enum):
     memory_used = "memory.used"
     utilization_gpu = "utilization.gpu"
     utilization_memory = "utilization.memory"
+
+
+class CpuRamAttributes(Enum):
+    cpu_usage = "cpu_usage"
+    ram_usage_total = "ram_usage_total"
+    ram_usage_available = "ram_usage_available"
+    ram_usage_percent = "ram_usage_percent"
+    ram_usage_used = "ram_usage_used"
+    ram_usage_free = "ram_usage_free"
 
 
 if not (Path(nltk.downloader.Downloader().download_dir) / "tokenizers" / "punkt").exists():
@@ -440,7 +449,7 @@ class Config(object):
     @classmethod
     def describe_gpu(cls, nvidia_smi_path="nvidia-smi", no_units=True, print_fn: Callable = print):
         try:
-            keys = [item.value for item in NvidiaSmiDefaultAttributes]
+            keys = [item.value for item in NvidiaSmiAttributes]
             nu_opt = "" if not no_units else ",nounits"
             cmd = f'{nvidia_smi_path} --query-gpu={",".join(keys)} --format=csv,noheader{nu_opt}'
             output = subprocess.check_output(cmd, shell=True)
@@ -500,9 +509,9 @@ class Config(object):
     @classmethod
     def get_gpu_usage(
         cls, nvidia_smi_path="nvidia-smi", no_units=True, logger: Optional[Logger] = None
-    ) -> list[dict[NvidiaSmiDefaultAttributes, str]]:
+    ) -> list[dict[NvidiaSmiAttributes, str]]:
         try:
-            keys = [item.value for item in NvidiaSmiDefaultAttributes]
+            keys = [item.value for item in NvidiaSmiAttributes]
             nu_opt = "" if not no_units else ",nounits"
             cmd = f'{nvidia_smi_path} --query-gpu={",".join(keys)} --format=csv,noheader{nu_opt}'
             if logger:
@@ -510,7 +519,7 @@ class Config(object):
             output = subprocess.check_output(cmd, shell=True)
             raw_lines = [line.strip() for line in output.decode().split("\n") if line.strip() != ""]
             info = [
-                {get_enum_from_value(NvidiaSmiDefaultAttributes, k).value: v for k, v in zip(keys, line.split(", "))}
+                {get_enum_from_value(NvidiaSmiAttributes, k).value: v for k, v in zip(keys, line.split(", "))}
                 for line in raw_lines
             ]
             return info
@@ -523,19 +532,17 @@ class Config(object):
             return []
 
     @classmethod
-    def get_cpu_ram_usage(cls, logger: Optional[Logger] = None) -> dict[str, str]:
+    def get_cpu_ram_usage(cls, logger: Optional[Logger] = None) -> dict[CpuRamAttributes, str]:
         try:
             cpu_usage = psutil.cpu_percent(percpu=True)
             ram_usage = psutil.virtual_memory()
             return {
-                "cpu_usage": cpu_usage,
-                "ram_usage": {
-                    "total": ram_usage.total,
-                    "available": ram_usage.available,
-                    "percent": ram_usage.percent,
-                    "used": ram_usage.used,
-                    "free": ram_usage.free,
-                },
+                CpuRamAttributes.cpu_usage: cpu_usage,
+                CpuRamAttributes.ram_usage_total: ram_usage.total,
+                CpuRamAttributes.ram_usage_available: ram_usage.available,
+                CpuRamAttributes.ram_usage_percent: ram_usage.percent,
+                CpuRamAttributes.ram_usage_used: ram_usage.used,
+                CpuRamAttributes.ram_usage_free: ram_usage.free,
             }
         except Exception:
             if logger:
