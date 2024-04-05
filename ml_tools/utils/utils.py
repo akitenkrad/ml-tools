@@ -1,3 +1,9 @@
+"""
+This module contains utility functions and classes for machine learning tasks.
+
+The module includes various utility functions and classes that can be used for common machine learning tasks. It provides functionalities for handling data, logging, tracking experiments with MLflow, and more.
+"""
+
 from __future__ import annotations
 
 import json
@@ -70,11 +76,23 @@ if not (Path(nltk.downloader.Downloader().download_dir) / "taggers" / "averaged_
 
 
 def now() -> datetime:
+    """
+    Get the current datetime in the JST (Japan Standard Time) timezone.
+
+    Returns:
+        datetime: The current datetime in JST.
+    """
     JST = timezone(timedelta(hours=9))
     return datetime.now(JST)
 
 
 def is_notebook() -> bool:
+    """
+    Check if the code is running in a Jupyter notebook environment.
+
+    Returns:
+        bool: True if running in a Jupyter notebook, False otherwise.
+    """
     try:
         shell = get_ipython().__class__.__name__
         if shell == "ZMInteractiveShell":
@@ -104,16 +122,50 @@ class Phase(Enum):
 
 
 def get_enum_from_value(enum_class, value: Any):
+    """
+    Retrieves the enum item from the given enum class based on the provided value.
+
+    Args:
+        enum_class (Enum): The enum class to retrieve the item from.
+        value (Any): The value to match against the enum item's value.
+
+    Returns:
+        Enum: The enum item that matches the provided value.
+
+    Raises:
+        KeyError: If no enum item is found with the provided value.
+    """
     value_map = {item.value: item for item in enum_class}
     return value_map[value]
 
 
 def filepath_to_uri(path: Path) -> str:
+    """
+    Convert a file path to a URI.
+
+    Args:
+        path (Path): The file path to convert.
+
+    Returns:
+        str: The URI representation of the file path.
+    """
     return urllib.parse.urljoin("file:", urllib.request.pathname2url(str(path.resolve().absolute())))
 
 
 class MlflowWriter:
+    """
+    A utility class for interacting with MLflow to log experiments, parameters, metrics, artifacts, and models.
+    """
+
     def __init__(self, exp_name: str, tracking_uri: str, logger: Optional[Logger] = None):
+        """
+        Initializes an instance of MlflowWriter.
+
+        Args:
+            exp_name (str): The name of the MLflow experiment.
+            tracking_uri (str): The URI of the MLflow tracking server.
+            logger (Optional[Logger], optional): The logger to use for logging messages. Defaults to None.
+        """
         self.__exp_name = exp_name
         self.__tracking_uri = filepath_to_uri(Path(tracking_uri))
         self.__logger = logger
@@ -122,9 +174,16 @@ class MlflowWriter:
 
     @property
     def is_initialized(self) -> bool:
+        """
+        Returns:
+            bool: True if the MlflowWriter is initialized, False otherwise.
+        """
         return self.__initialized
 
     def __initialize__(self):
+        """
+        Initializes the MLflow client and creates a new experiment if it doesn't exist.
+        """
         self.client = MlflowClient(tracking_uri=self.__tracking_uri)
         self.run = None
         self.run_id = None
@@ -145,11 +204,23 @@ class MlflowWriter:
         mlflow.set_experiment(self.__exp_name)
 
     def initialize(self, tags=None):
+        """
+        Initializes the MlflowWriter by creating a new run and setting it as the active run.
+
+        Args:
+            tags (Optional[dict], optional): Tags to associate with the run. Defaults to None.
+        """
         self.__initialize__()
         self.create_new_run(tags=tags)
         self.__initialized = True
 
     def create_new_run(self, tags=None):
+        """
+        Creates a new run within the MLflow experiment.
+
+        Args:
+            tags (Optional[dict], optional): Tags to associate with the run. Defaults to None.
+        """
         self.run = self.client.create_run(self.exp_id, tags=tags)
         assert self.run is not None
 
@@ -159,36 +230,99 @@ class MlflowWriter:
         mlflow.tracking.fluent._active_run_stack.append(self.run)
 
     def terminate(self):
+        """
+        Terminates the current run.
+        """
         self.client.set_terminated(self.run_id, RunStatus.to_string(RunStatus.FINISHED))
         self.__initialized = False
 
     def log_param(self, key: str, value: Any):
+        """
+        Logs a parameter for the current run.
+
+        Args:
+            key (str): The name of the parameter.
+            value (Any): The value of the parameter.
+        """
         self.client.log_param(self.run_id, key, value)
 
     def log_metric(self, key: str, value: Any, step=None):
+        """
+        Logs a metric for the current run.
+
+        Args:
+            key (str): The name of the metric.
+            value (Any): The value of the metric.
+            step (Optional[int], optional): The step number. Defaults to None.
+        """
         self.client.log_metric(self.run_id, key, value, step=step)
 
     def log_artifact(self, local_path: str):
+        """
+        Logs an artifact for the current run.
+
+        Args:
+            local_path (str): The local path of the artifact.
+        """
         self.client.log_artifact(self.run_id, local_path)
 
     def log_dict(self, dictionary: dict[str, Any], artifact_file: str = ""):
+        """
+        Logs a dictionary as an artifact for the current run.
+
+        Args:
+            dictionary (dict[str, Any]): The dictionary to log.
+            artifact_file (str, optional): The name of the artifact file. Defaults to "".
+        """
         self.client.log_dict(self.run_id, dictionary, artifact_file)
 
     def log_text(self, text: str, artifact_file: str):
+        """
+        Logs a text string as an artifact for the current run.
+
+        Args:
+            text (str): The text string to log.
+            artifact_file (str): The name of the artifact file.
+        """
         self.client.log_text(self.run_id, text, artifact_file)
 
     def log_pytorch_model(self, model, artifact_path: str):
+        """
+        Logs a PyTorch model as an artifact for the current run.
+
+        Args:
+            model: The PyTorch model to log.
+            artifact_path (str): The path to save the model artifact.
+        """
         mlflow.pytorch.log_model(pytorch_model=model, artifact_path=artifact_path)
 
 
 @dataclass
 class LrFinderSettings(object):
+    """
+    A class representing the settings for a learning rate finder.
+
+    Attributes:
+        initial_value (float): The initial learning rate value.
+        final_value (float): The final learning rate value.
+        beta (float): The beta value used for smoothing the loss curve.
+    """
+
     initial_value: float = 1e-8
     final_value: float = 10
     beta: float = 0.98
 
     @classmethod
     def from_dict(cls, config: dict):
+        """
+        Creates an instance of LrFinderSettings from a dictionary.
+
+        Args:
+            config (dict): A dictionary containing the configuration values.
+
+        Returns:
+            LrFinderSettings: An instance of LrFinderSettings with the specified configuration values.
+        """
         settings = cls()
         if "initial_value" in config:
             settings.initial_value = float(config["initial_value"])
@@ -199,6 +333,25 @@ class LrFinderSettings(object):
 
 @dataclass
 class TrainSettings(object):
+    """
+    A class representing the settings for training a model.
+
+    Attributes:
+        device (torch.device): The device to use for training. Defaults to torch.device("cpu").
+        exp_name (str): The name of the experiment. Defaults to "default_exp".
+        k_folds (int): The number of folds for cross-validation. Defaults to 3.
+        epochs (int): The number of training epochs. Defaults to 250.
+        batch_size (int): The batch size for training. Defaults to 32.
+        valid_size (float): The proportion of data to use for validation. Defaults to 0.1.
+        test_size (float): The proportion of data to use for testing. Defaults to 0.1.
+        lr (float): The learning rate for training. Defaults to 0.001.
+        lr_decay (float): The learning rate decay factor. Defaults to 0.9.
+        early_stop_patience (int): The number of epochs to wait for early stopping. Defaults to 10.
+        logging_per_batch (int): The number of batches to wait before logging. Defaults to 5.
+        lr_finder_settings (LrFinderSettings): The settings for learning rate finder. Defaults to LrFinderSettings().
+        ex_args (dict): Extra arguments for training settings. Defaults to an empty dictionary.
+    """
+
     device: torch.device = torch.device("cpu")
     exp_name: str = "default_exp"
     k_folds: int = 3
@@ -215,6 +368,15 @@ class TrainSettings(object):
 
     @classmethod
     def from_dict(cls, config: dict) -> TrainSettings:
+        """
+        Creates a TrainSettings object from a dictionary.
+
+        Args:
+            config (dict): The dictionary containing the configuration settings.
+
+        Returns:
+            TrainSettings: The TrainSettings object created from the dictionary.
+        """
         settings = cls()
         if "device" in config:
             settings.device = torch.device(config["device"])
@@ -258,6 +420,28 @@ class TrainSettings(object):
 
 @dataclass
 class LogSettings(object):
+    """
+    A class representing the settings for logging in a machine learning system.
+
+    Attributes:
+        log_dir (Path): The directory where log files will be stored.
+        log_filename (str): The name of the log file.
+        log_file (Path): The full path to the log file.
+        data_dir (Path): The directory where data files will be stored.
+        backup_dir (Path): The directory where backup files will be stored.
+        local_cache_dir (Path): The directory where local cache files will be stored.
+        global_cache_dir (Path): The directory where global cache files will be stored.
+        output_dir (Path): The directory where output files will be stored.
+        weights_dir (Path): The directory where weight files will be stored.
+        mlflow_dir (Path): The directory where MLflow files will be stored.
+        backup (bool): Flag indicating whether to create backup files.
+
+    Methods:
+        from_dict(cls, config: dict, exp_name: str = "exp", timestamp: datetime = datetime.now()) -> LogSettings:
+            Creates a LogSettings object from a dictionary of configuration options.
+
+    """
+
     log_dir: Path = Path("logs")
     log_filename: str = "system.log"
     log_file: Path = Path("")
@@ -272,6 +456,18 @@ class LogSettings(object):
 
     @classmethod
     def from_dict(cls, config: dict, exp_name: str = "exp", timestamp: datetime = datetime.now()) -> LogSettings:
+        """
+        Creates a LogSettings object from a dictionary of configuration options.
+
+        Args:
+            config (dict): A dictionary containing the configuration options.
+            exp_name (str): The name of the experiment. Defaults to "exp".
+            timestamp (datetime): The timestamp for the log directory. Defaults to the current datetime.
+
+        Returns:
+            LogSettings: A LogSettings object with the specified configuration options.
+
+        """
         settings = cls()
         if "log_dir" in config:
             settings.log_dir = Path(config["log_dir"])
@@ -309,6 +505,34 @@ class LogSettings(object):
 
 @dataclass
 class Config(object):
+    """
+    Configuration class for managing settings and options.
+
+    Attributes:
+        logger (Logger): The logger instance.
+        mlflow_writer (MlflowWriter): The MLflow writer instance.
+        config_path (Path): The path to the configuration file.
+        timestamp (datetime): The timestamp of the configuration.
+        train_settings (TrainSettings): The settings for training.
+        log_settings (LogSettings): The settings for logging.
+        ex_logger (AttrDict): The extra logger instance.
+
+    Methods:
+        get_hash: Generates a random hash.
+        now: Returns the current timestamp.
+        generate: Generates a configuration object.
+        __mkdirs: Creates necessary directories.
+        print: Prints the given message.
+        init_mlflow: Initializes MLflow.
+        close_mlflow: Terminates MLflow.
+        describe_cpu: Describes CPU information.
+        describe_gpu: Describes NVIDIA GPU information.
+        describe_m1_silicon: Describes M1 Silicon GPU information.
+        describe_model: Describes the given model.
+        get_gpu_usage: Retrieves GPU usage information.
+        get_cpu_ram_usage: Retrieves CPU and RAM usage information.
+    """
+
     logger: Logger
     mlflow_writer: MlflowWriter
     config_path: Path = Path("")
@@ -321,16 +545,46 @@ class Config(object):
 
     @classmethod
     def get_hash(cls, size: int = 12) -> str:
+        """
+        Generate a random hash string of the specified size.
+
+        Parameters:
+            size (int): The length of the hash string to generate. Default is 12.
+
+        Returns:
+            str: The randomly generated hash string.
+        """
         chars = string.ascii_lowercase + string.digits
         return "".join(random.SystemRandom().choice(chars) for _ in range(size))
 
     @classmethod
     def now(cls) -> datetime:
+        """
+        Get the current datetime in JST timezone.
+
+        Returns:
+            datetime: The current datetime in JST timezone.
+        """
         JST = timezone(timedelta(hours=9))
         return datetime.now(JST)
 
     @classmethod
     def generate(cls, config_path: str = "", silent: bool = False, extra_config: dict[str, Any] = {}) -> Config:
+        """
+        Generate a Config object based on the provided configuration file path and additional configuration.
+
+        Args:
+            cls (class): The class to instantiate the Config object.
+            config_path (str, optional): The path to the configuration file. Defaults to "".
+            silent (bool, optional): Whether to suppress log output. Defaults to False.
+            extra_config (dict[str, Any], optional): Additional configuration to override the values in the file. Defaults to {}.
+
+        Returns:
+            Config: The generated Config object.
+
+        Raises:
+            FileNotFoundError: If the specified configuration file is not found.
+        """
         settings = cls(logger=Logger(""), mlflow_writer=MlflowWriter("", ""), config_path=Path(config_path))
 
         if config_path:
@@ -405,6 +659,19 @@ class Config(object):
         return settings
 
     def __mkdirs(self):
+        """
+        Create necessary directories for logging and data storage.
+
+        This method creates the following directories:
+        - log_dir: Directory for log files
+        - backup_dir: Directory for backup files
+        - data_dir: Directory for data files
+        - weights_dir: Directory for weight files
+        - output_dir: Directory for output files
+        - mlflow_dir: Directory for MLflow files
+        - local_cache_dir: Directory for local cache files
+        - global_cache_dir: Directory for global cache files
+        """
         self.log_settings.log_dir.mkdir(parents=True, exist_ok=True)
         self.log_settings.backup_dir.mkdir(parents=True, exist_ok=True)
         self.log_settings.data_dir.mkdir(parents=True, exist_ok=True)
@@ -415,12 +682,27 @@ class Config(object):
         self.log_settings.global_cache_dir.mkdir(parents=True, exist_ok=True)
 
     def print(self, x):
+        """
+        Prints the given value.
+
+        If a logger is available, the value is logged as an info message.
+        Otherwise, it is printed to the console.
+
+        Args:
+            x: The value to be printed.
+        """
         if self.logger is None:
             print(x)
         else:
             self.logger.info(x)
 
     def init_mlflow(self):
+        """
+        Initializes the MLflow writer.
+
+        This method initializes the MLflow writer by creating an instance of the MlflowWriter class
+        and calling its `initialize` method.
+        """
         self.mlflow_writer = MlflowWriter(
             exp_name=self.train_settings.exp_name,
             tracking_uri=str(self.log_settings.mlflow_dir.resolve().absolute()),
@@ -429,10 +711,21 @@ class Config(object):
         self.mlflow_writer.initialize()
 
     def close_mlflow(self):
+        """
+        Closes the MLflow writer.
+
+        This method terminates the MLflow writer, ensuring that all pending data is flushed and resources are released.
+        """
         self.mlflow_writer.terminate()
 
     @classmethod
     def describe_cpu(cls, print_fn: Callable = print):
+        """
+        Prints information about the CPU.
+
+        Args:
+            print_fn (Callable, optional): The function used to print the CPU information. Defaults to print.
+        """
         print_fn("====== cpu info ============")
         for key, value in cpuinfo.get_cpu_info().items():
             print_fn(f"CPU INFO: {key:20s}: {value}")
@@ -440,6 +733,17 @@ class Config(object):
 
     @classmethod
     def describe_gpu(cls, nvidia_smi_path="nvidia-smi", no_units=True, print_fn: Callable = print):
+        """
+        Retrieves and prints information about the available GPUs using the NVIDIA System Management Interface (nvidia-smi).
+
+        Args:
+            nvidia_smi_path (str, optional): The path to the nvidia-smi executable. Defaults to "nvidia-smi".
+            no_units (bool, optional): Whether to exclude units from the output. Defaults to True.
+            print_fn (Callable, optional): The function used for printing the output. Defaults to print.
+
+        Raises:
+            CalledProcessError: If an error occurs while executing the nvidia-smi command.
+        """
         try:
             keys = [item.value for item in NvidiaSmiAttributes]
             nu_opt = "" if not no_units else ",nounits"
@@ -460,6 +764,12 @@ class Config(object):
 
     @classmethod
     def describe_m1_silicon(cls, print_fn: Callable = print):
+        """
+        Prints information about the availability of the Mac-M1 GPU.
+
+        Args:
+            print_fn (Callable): The function used to print the output. Defaults to `print`.
+        """
         print_fn("====== show GPU information =========")
         if torch.backends.mps.is_available():
             print_fn("  Mac-M1 GPU is available.")
@@ -475,7 +785,16 @@ class Config(object):
         input_data=None,
         print_fn: Callable = print,
     ):
-        # TODO add **kwargs
+        """
+        Generates a summary of the given model, including input/output sizes, number of parameters,
+        kernel sizes, and multiply-add operations.
+
+        Args:
+            model (torch.nn.Module): The model to describe.
+            input_size (Optional[tuple[int]]): The size of the input data. Defaults to None.
+            input_data: The input data to use for the summary. Defaults to None.
+            print_fn (Callable): The function used to print the summary. Defaults to print.
+        """
         if input_data is None:
             summary_str = summary(
                 model,
@@ -502,6 +821,23 @@ class Config(object):
     def get_gpu_usage(
         cls, nvidia_smi_path="nvidia-smi", no_units=True, logger: Optional[Logger] = None
     ) -> list[dict[NvidiaSmiAttributes, str]]:
+        """
+        Retrieves GPU usage information using the NVIDIA System Management Interface (nvidia-smi).
+
+        Args:
+            nvidia_smi_path (str, optional): Path to the nvidia-smi executable. Defaults to "nvidia-smi".
+            no_units (bool, optional): Whether to exclude units from the output. Defaults to True.
+            logger (Optional[Logger], optional): Logger object for logging information. Defaults to None.
+
+        Returns:
+            list[dict[NvidiaSmiAttributes, str]]: A list of dictionaries containing GPU usage information.
+                Each dictionary represents the usage information for a single GPU and contains key-value pairs
+                where the keys are attributes defined in the NvidiaSmiAttributes enum and the values are the
+                corresponding attribute values.
+
+        Raises:
+            CalledProcessError: If an error occurs while executing the nvidia-smi command.
+        """
         try:
             keys = [item.value for item in NvidiaSmiAttributes]
             nu_opt = "" if not no_units else ",nounits"
@@ -525,6 +861,22 @@ class Config(object):
 
     @classmethod
     def get_cpu_ram_usage(cls, logger: Optional[Logger] = None) -> dict[CpuRamAttributes, str]:
+        """
+        Get the CPU and RAM usage information.
+
+        Args:
+            logger (Optional[Logger]): An optional logger object to log any warnings.
+
+        Returns:
+            dict[CpuRamAttributes, str]: A dictionary containing the CPU and RAM usage information.
+                - CpuRamAttributes.cpu_usage: A list of CPU usage percentages for each CPU core.
+                - CpuRamAttributes.ram_usage_total: The total RAM available in bytes.
+                - CpuRamAttributes.ram_usage_available: The available RAM in bytes.
+                - CpuRamAttributes.ram_usage_percent: The percentage of RAM usage.
+                - CpuRamAttributes.ram_usage_used: The used RAM in bytes.
+                - CpuRamAttributes.ram_usage_free: The free RAM in bytes.
+
+        """
         try:
             cpu_usage = psutil.cpu_percent(percpu=True)
             ram_usage = psutil.virtual_memory()
@@ -542,7 +894,11 @@ class Config(object):
             return {}
 
     def backup_logs(self):
-        """copy log directory to config.backup"""
+        """Copy the log directory to the backup directory.
+
+        This method deletes the existing backup directory and creates a new one.
+        Then, it copies the contents of the log directory to the backup directory.
+        """
         backup_dir = Path(self.log_settings.backup_dir)
         if backup_dir.exists():
             shutil.rmtree(str(backup_dir))
@@ -550,9 +906,23 @@ class Config(object):
         shutil.copytree(self.log_settings.log_dir, self.log_settings.backup_dir)
 
     def add_logger(self, name: str, silent: bool = False):
+        """
+        Adds a logger to the `ex_logger` dictionary.
+
+        Parameters:
+            name (str): The name of the logger.
+            silent (bool, optional): If True, the logger will not print log messages to the console.
+                Defaults to False.
+        """
         self.ex_logger[name] = get_logger(name=name, logfile=str(self.log_settings.log_file), silent=silent)
 
     def fix_seed(self, seed=42):
+        """
+        Fix the random seed for reproducibility.
+
+        Args:
+            seed (int): The seed value to set for random number generators.
+        """
         self.print(self.__TEXT.format(KEY_1="root", KEY_2="seed", VALUE=seed))
         random.seed(seed)
         np.random.seed(seed)
@@ -562,6 +932,16 @@ class Config(object):
         torch.use_deterministic_algorithms(True)
 
     def save_pytorch_model(self, model, model_name: str):
+        """
+        Saves a PyTorch model using MLflow.
+
+        Args:
+            model: The PyTorch model to be saved.
+            model_name (str): The name of the model.
+
+        Raises:
+            AssertionError: If the MLflow writer is not initialized.
+        """
         assert self.mlflow_writer.is_initialized
         self.mlflow_writer.log_pytorch_model(model, str(self.log_settings.log_dir / model_name))
 
@@ -645,7 +1025,23 @@ def isfloat(s: str) -> bool:
 
 
 class JsonEncoder(json.JSONEncoder):
+    """
+    Custom JSON encoder that extends the functionality of the default JSONEncoder class.
+    """
+
     def default(self, obj):
+        """
+        Override the default method to handle custom object serialization.
+
+        Args:
+            obj: The object to be serialized.
+
+        Returns:
+            The serialized representation of the object.
+
+        Raises:
+            TypeError: If the object cannot be serialized.
+        """
         if isinstance(obj, np.integer):
             return int(obj)
         elif isinstance(obj, np.floating):
