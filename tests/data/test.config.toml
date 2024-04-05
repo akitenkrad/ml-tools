@@ -1,7 +1,7 @@
 [train_settings]
 batch_size = 32
 early_stop_patience = 5
-epochs = 250
+epochs = 100
 exp_name = "test_exp"
 k_folds = 3
 logging_per_batch = 25
@@ -15,16 +15,13 @@ beta = 0.98
 final_value = 10.0
 initial_value = 0.000000001
 
-[data_settings]
-cache_dir = "tests/output/logs/__cache__"
-data_dir = "tests/output/logs/__data__"
-output_dir = "tests/output/logs/__outputs__"
-weights_dir = "tests/output/logs/__weights__"
-
 [log_settings]
-backup = "False"
-backup_dir = "tests/output/logs/__backup__"
-log_dir = "tests/output/logs/__logs__"
+backup = false
+backup_dir_name = "backup"
+data_dir_name = "data"
+global_cache_dir_name = "global_cache"
+local_cache_dir_name = "cache"
+log_dir = "tests/output/logs"
 log_filename = "system.log"
-mlflow_dir = "tests/output/logs/__logs__/mlflow"
-weights = "tests/output/logs/__logs__/weights"
+output_dir_name = "outputs"
+weights_dir_name = "weights"

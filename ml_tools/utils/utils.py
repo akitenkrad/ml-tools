@@ -258,12 +258,17 @@ class TrainSettings(object):
 
 @dataclass
 class LogSettings(object):
-    log_dir: Path = Path("__logs__")
+    log_dir: Path = Path("logs")
     log_filename: str = "system.log"
     log_file: Path = Path("")
-    mlflow_dir: Path = Path("__logs__/mlflow")
+    data_dir: Path = Path("logs/data")
+    backup_dir: Path = Path("logs/backup")
+    local_cache_dir: Path = Path("logs/cache")
+    global_cache_dir: Path = Path("logs/cache")
+    output_dir: Path = Path("logs/outputs")
+    weights_dir: Path = Path("logs/weights")
+    mlflow_dir: Path = Path("logs/mlflow")
     backup: bool = False
-    backup_dir: Path = Path("__backup__")
 
     @classmethod
     def from_dict(cls, config: dict, exp_name: str = "exp", timestamp: datetime = datetime.now()) -> LogSettings:
@@ -272,37 +277,32 @@ class LogSettings(object):
             settings.log_dir = Path(config["log_dir"])
         if "log_filename" in config:
             settings.log_filename = str(config["log_filename"])
-        if "mlflow_dir" in config:
-            settings.mlflow_dir = Path(config["mlflow_dir"])
         if "backup" in config:
-            settings.backup = config["backup"]
-        if "backup_dir" in config:
-            settings.backup_dir = Path(config["backup_dir"])
+            if isinstance(config["backup"], str):
+                settings.backup = config["backup"].lower() == "true"
+            elif isinstance(config["backup"], bool):
+                settings.backup = config["backup"]
+            else:
+                settings.backup = False
 
         settings.log_dir = settings.log_dir / f"{exp_name}_{timestamp.strftime('%Y%m%d%H%M%S')}"
         settings.log_file = settings.log_dir / settings.log_filename
 
-        return settings
+        if "backup_dir_name" in config:
+            settings.backup_dir = settings.log_dir / config["backup_dir_name"]
+        if "data_dir_name" in config:
+            settings.data_dir = settings.log_dir / config["data_dir_name"]
+        if "output_dir_name" in config:
+            settings.output_dir = settings.log_dir / config["output_dir_name"]
+        if "weights_dir_name" in config:
+            settings.weights_dir = settings.log_dir / config["weights_dir_name"]
+        if "mlflow_dir_name" in config:
+            settings.mlflow_dir = settings.log_dir / config["mlflow_dir_name"]
 
-
-@dataclass
-class DataSettings(object):
-    data_dir: Path = Path("__data__")
-    cache_dir: Path = Path("__cache__")
-    weights_dir: Path = Path("__weights__")
-    output_dir: Path = Path("__output__")
-
-    @classmethod
-    def from_dict(cls, config: dict) -> DataSettings:
-        settings = cls()
-        if "data_dir" in config:
-            settings.data_dir = Path(config["data_dir"])
-        if "cache_dir" in config:
-            settings.cache_dir = Path(config["cache_dir"])
-        if "weights_dir" in config:
-            settings.weights_dir = Path(config["weights_dir"])
-        if "output_dir" in config:
-            settings.output_dir = Path(config["output_dir"])
+        if "local_cache_dir_name" in config:
+            settings.local_cache_dir = settings.log_dir / config["local_cache_dir_name"]
+        if "global_cache_dir_name" in config:
+            settings.global_cache_dir = Path(config["global_cache_dir_name"])
 
         return settings
 
@@ -314,7 +314,6 @@ class Config(object):
     config_path: Path = Path("")
     timestamp: datetime = field(default_factory=datetime.now)
     train_settings: TrainSettings = field(default_factory=TrainSettings)
-    data_settings: DataSettings = field(default_factory=DataSettings)
     log_settings: LogSettings = field(default_factory=LogSettings)
     ex_logger: AttrDict = field(default_factory=lambda: AttrDict({}))
 
@@ -341,27 +340,25 @@ class Config(object):
                 with open(config_path, mode="rb") as f:
                     config = tomllib.load(f)
             if len(extra_config) > 0:
-                for s in ["train_settings", "log_settings", "data_settings"]:
+                for s in ["train_settings", "log_settings"]:
                     if s in extra_config:
                         config[s].update(extra_config[s])
         else:
             config = {
                 "train_settings": {
-                    "exp_name": "default_exp",
-                },
-                "data_settings": {
-                    "cache_dir": "logs/__cache__",
-                    "data_dir": "logs/__data__",
-                    "output_dir": "logs/__outputs__",
-                    "weights_dir": "logs/__weights__",
+                    "exp_name": "sample_exp",
                 },
                 "log_settings": {
                     "backup": "False",
-                    "backup_dir": "logs/__backup__",
-                    "log_dir": "logs/__logs__",
+                    "log_dir": "logs",
                     "log_filename": "system.log",
-                    "mlflow_dir": "logs/__logs__/mlflow",
-                    "weights": "logs/__logs__/weights",
+                    "backup_dir_name": "backup",
+                    "data_dir_name": "data",
+                    "output_dir_name": "outputs",
+                    "mlflow_dir_name": "mlflow",
+                    "weights_dir_name": "weights",
+                    "local_cache_dir_name": "cache",
+                    "global_cache_dir_name": "logs/global_cache",
                 },
             }
 
@@ -375,8 +372,6 @@ class Config(object):
             settings.log_settings = LogSettings.from_dict(
                 config["log_settings"], exp_name=settings.train_settings.exp_name, timestamp=settings.timestamp
             )
-        if "data_settings" in config:
-            settings.data_settings = DataSettings.from_dict(config["data_settings"])
 
         # set logger
         if hasattr(settings, "logger") and isinstance(settings.logger, Logger):
@@ -390,10 +385,6 @@ class Config(object):
         for key in settings.log_settings.__dataclass_fields__.keys():
             settings.logger.info(
                 settings.__TEXT.format(KEY_1="log_settings", KEY_2=key, VALUE=getattr(settings.log_settings, key))
-            )
-        for key in settings.data_settings.__dataclass_fields__.keys():
-            settings.logger.info(
-                settings.__TEXT.format(KEY_1="data_settings", KEY_2=key, VALUE=getattr(settings.data_settings, key))
             )
         for key in settings.train_settings.__dataclass_fields__.keys():
             settings.logger.info(
@@ -416,11 +407,12 @@ class Config(object):
     def __mkdirs(self):
         self.log_settings.log_dir.mkdir(parents=True, exist_ok=True)
         self.log_settings.backup_dir.mkdir(parents=True, exist_ok=True)
+        self.log_settings.data_dir.mkdir(parents=True, exist_ok=True)
+        self.log_settings.weights_dir.mkdir(parents=True, exist_ok=True)
+        self.log_settings.output_dir.mkdir(parents=True, exist_ok=True)
         self.log_settings.mlflow_dir.mkdir(parents=True, exist_ok=True)
-        self.data_settings.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.data_settings.data_dir.mkdir(parents=True, exist_ok=True)
-        self.data_settings.weights_dir.mkdir(parents=True, exist_ok=True)
-        self.data_settings.output_dir.mkdir(parents=True, exist_ok=True)
+        self.log_settings.local_cache_dir.mkdir(parents=True, exist_ok=True)
+        self.log_settings.global_cache_dir.mkdir(parents=True, exist_ok=True)
 
     def print(self, x):
         if self.logger is None:
@@ -568,6 +560,10 @@ class Config(object):
         torch.cuda.manual_seed(seed)
         torch.backends.cudnn.deterministic = True
         torch.use_deterministic_algorithms(True)
+
+    def save_pytorch_model(self, model, model_name: str):
+        assert self.mlflow_writer.is_initialized
+        self.mlflow_writer.log_pytorch_model(model, str(self.log_settings.log_dir / model_name))
 
 
 def timedelta2HMS(total_sec: int) -> str:

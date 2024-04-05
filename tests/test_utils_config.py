@@ -47,18 +47,9 @@ def test_config_generate(config):
         == config_from_toml["train_settings"]["lr_finder_settings"]["beta"]
     )
 
-    assert config.data_settings.cache_dir.exists()
-    assert config.data_settings.cache_dir == Path(config_from_toml["data_settings"]["cache_dir"])
-    assert config.data_settings.data_dir.exists()
-    assert config.data_settings.data_dir == Path(config_from_toml["data_settings"]["data_dir"])
-    assert config.data_settings.output_dir.exists()
-    assert config.data_settings.output_dir == Path(config_from_toml["data_settings"]["output_dir"])
-    assert config.data_settings.weights_dir.exists()
-    assert config.data_settings.weights_dir == Path(config_from_toml["data_settings"]["weights_dir"])
-
     assert config.log_settings.backup == config_from_toml["log_settings"]["backup"]
     assert config.log_settings.backup_dir.exists()
-    assert config.log_settings.backup_dir == Path(config_from_toml["log_settings"]["backup_dir"])
+    assert config.log_settings.backup_dir.name == config_from_toml["log_settings"]["backup_dir_name"]
     assert config.log_settings.log_dir.exists()
     assert config.log_settings.log_filename == config_from_toml["log_settings"]["log_filename"]
     assert config.log_settings.mlflow_dir.exists()
@@ -72,6 +63,7 @@ def test_config_generate(config):
     config.mlflow_writer.log_text("test text", "test_text")
     test_model = torch.nn.Linear(1, 1)
     config.mlflow_writer.log_pytorch_model(test_model, "test_model")
+    config.save_pytorch_model(test_model, "test_model")
     config.close_mlflow()
 
     config.add_logger("logger_2")
@@ -81,4 +73,3 @@ def test_config_generate(config):
 def test_config_generate_without_toml(config):
     config = Config.generate()
     assert isinstance(config, Config)
-
