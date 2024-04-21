@@ -1024,6 +1024,21 @@ def isfloat(s: str) -> bool:
         return True
 
 
+def to_int(s: str, default: int = 10) -> int:
+    """Convert the argument string to integer.
+
+    Args:
+        s (str): string value.
+
+    Returns:
+        int: integer value.
+    """
+    try:
+        return int(s)
+    except:
+        return default
+
+
 class JsonEncoder(json.JSONEncoder):
     """
     Custom JSON encoder that extends the functionality of the default JSONEncoder class.
