@@ -593,10 +593,6 @@ class Config(object):
             else:
                 with open(config_path, mode="rb") as f:
                     config = tomllib.load(f)
-            if len(extra_config) > 0:
-                for s in ["train_settings", "log_settings"]:
-                    if s in extra_config:
-                        config[s].update(extra_config[s])
         else:
             config = {
                 "train_settings": {
@@ -615,6 +611,11 @@ class Config(object):
                     "global_cache_dir_name": "logs/global_cache",
                 },
             }
+
+        if len(extra_config) > 0:
+            for s in ["train_settings", "log_settings"]:
+                if s in extra_config:
+                    config[s].update(extra_config[s])
 
         # set attributes
         settings.timestamp = settings.now()
