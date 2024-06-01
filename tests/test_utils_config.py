@@ -73,3 +73,31 @@ def test_config_generate(config):
 def test_config_generate_without_toml(config):
     config = Config.generate()
     assert isinstance(config, Config)
+
+
+def test_logging(config):
+    config.logger.info("info")
+
+    with open(config.log_settings.log_file, mode="r") as f:
+        logs = [line for line in f]
+        assert "info" in logs[-1]
+
+    config.logger.debug("debug")
+    with open(config.log_settings.log_file, mode="r") as f:
+        logs = [line for line in f]
+        assert "debug" in logs[-1]
+
+    config.logger.error("error")
+    with open(config.log_settings.log_file, mode="r") as f:
+        logs = [line for line in f]
+        assert "error" in logs[-1]
+
+    config.logger.warning("warning")
+    with open(config.log_settings.log_file, mode="r") as f:
+        logs = [line for line in f]
+        assert "warning" in logs[-1]
+
+    config.logger.critical("critical")
+    with open(config.log_settings.log_file, mode="r") as f:
+        logs = [line for line in f]
+        assert "critical" in logs[-1]
