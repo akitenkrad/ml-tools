@@ -7,6 +7,7 @@ The module includes various utility functions and classes that can be used for c
 from __future__ import annotations
 
 import json
+import logging
 import os
 import random
 import shutil
@@ -453,6 +454,7 @@ class LogSettings(object):
     weights_dir: Path = Path("logs/weights")
     mlflow_dir: Path = Path("logs/mlflow")
     backup: bool = False
+    loglevel: int = logging.DEBUG
 
     @classmethod
     def from_dict(cls, config: dict, exp_name: str = "exp", timestamp: datetime = datetime.now()) -> LogSettings:
@@ -631,7 +633,12 @@ class Config(object):
         # set logger
         if hasattr(settings, "logger") and isinstance(settings.logger, Logger):
             kill_logger(settings.logger)
-        settings.logger = get_logger(name="config", logfile=str(settings.log_settings.log_file), silent=silent)
+        settings.logger = get_logger(
+            name="config",
+            logfile=str(settings.log_settings.log_file),
+            silent=silent,
+            loglevel=settings.log_settings.loglevel,
+        )
 
         # show config
         settings.logger.info("====== show config =========")
@@ -906,7 +913,7 @@ class Config(object):
         backup_dir.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(self.log_settings.log_dir, self.log_settings.backup_dir)
 
-    def add_logger(self, name: str, silent: bool = False):
+    def add_logger(self, name: str, silent: bool = False, loglevel: int = logging.DEBUG):
         """
         Adds a logger to the `ex_logger` dictionary.
 
@@ -915,7 +922,9 @@ class Config(object):
             silent (bool, optional): If True, the logger will not print log messages to the console.
                 Defaults to False.
         """
-        self.ex_logger[name] = get_logger(name=name, logfile=str(self.log_settings.log_file), silent=silent)
+        self.ex_logger[name] = get_logger(
+            name=name, logfile=str(self.log_settings.log_file), silent=silent, loglevel=loglevel
+        )
 
     def fix_seed(self, seed=42):
         """

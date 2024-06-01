@@ -59,7 +59,7 @@ def get_json_liner(name: str, logfile: str = "") -> Logger:
     return logger
 
 
-def get_logger(name, logfile: str = "", silent: bool = False) -> Logger:
+def get_logger(name, logfile: str = "", silent: bool = False, loglevel: int = logging.DEBUG) -> Logger:
     """Generate Logger instance
 
     Args:
@@ -91,35 +91,26 @@ def get_logger(name, logfile: str = "", silent: bool = False) -> Logger:
     logger = getLogger(name)
     for h in logger.handlers:
         logger.removeHandler(h)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(loglevel)
 
-    if not logger.hasHandlers():
-        handler_format = Formatter("%(asctime)s [%(levelname)8s] %(name)15s - %(message)s")
+    handler_format = Formatter("%(asctime)s [%(levelname)8s] %(name)15s - %(message)s")
 
-        # --------------------------------
-        # 2. handler configuration
-        # --------------------------------
-        if not silent:
-            stream_handler = StreamHandler()
-            stream_handler.setLevel(logging.INFO)
-            stream_handler.setFormatter(handler_format)
-            logger.addHandler(stream_handler)
+    # --------------------------------
+    # 2. handler configuration
+    # --------------------------------
+    if not silent:
+        stream_handler = StreamHandler()
+        stream_handler.setLevel(loglevel)
+        stream_handler.setFormatter(handler_format)
+        logger.addHandler(stream_handler)
 
-        # --------------------------------
-        # 3. log file configuration
-        # --------------------------------
-        fh = RotatingFileHandler(str(log_dir / logfile), maxBytes=3145728, backupCount=3000)
-        fh.setLevel(logging.DEBUG)
-        fh.setFormatter(handler_format)
-        logger.addHandler(fh)
-
-        # --------------------------------
-        # 4. error log file configuration
-        # --------------------------------
-        er_fh = RotatingFileHandler(str(log_dir / logfile), maxBytes=3145728, backupCount=3000)
-        er_fh.setLevel(logging.ERROR)
-        er_fh.setFormatter(handler_format)
-        logger.addHandler(er_fh)
+    # --------------------------------
+    # 3. log file configuration
+    # --------------------------------
+    fh = RotatingFileHandler(str(log_dir / logfile), maxBytes=3145728, backupCount=3000)
+    fh.setLevel(loglevel)
+    fh.setFormatter(handler_format)
+    logger.addHandler(fh)
 
     return logger
 
