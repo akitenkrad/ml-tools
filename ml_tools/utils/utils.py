@@ -45,7 +45,7 @@ if sys.version_info.minor < 11:
 else:
     import tomllib
 
-from ml_tools.utils.logger import get_logger, kill_logger
+from ml_tools.utils.logger import get_logger
 
 
 class NvidiaSmiAttributes(Enum):
@@ -631,8 +631,6 @@ class Config(object):
             )
 
         # set logger
-        if hasattr(settings, "logger") and isinstance(settings.logger, Logger):
-            kill_logger(settings.logger)
         settings.logger = get_logger(
             name="config",
             logfile=str(settings.log_settings.log_file),

@@ -9,17 +9,14 @@ import torch
 from ml_tools.utils.utils import Config
 
 
-@pytest.fixture
-def config():
+@pytest.fixture(scope="function", autouse=True)
+def prepare_for_test():
     if Path("tests/output/logs").exists():
         shutil.rmtree("tests/output/logs")
 
+
+def test_config_generate():
     config = Config.generate("tests/data/test.config.toml", silent=False, extra_config={})
-
-    yield config
-
-
-def test_config_generate(config):
     with open("tests/data/test.config.toml", mode="rb") as f:
         config_from_toml = tomllib.load(f)
 
@@ -70,14 +67,27 @@ def test_config_generate(config):
     config.ex_logger.logger_2.info("test")
 
 
-def test_config_generate_without_toml(config):
+def test_config_generate_without_toml():
     config = Config.generate()
     assert isinstance(config, Config)
 
 
-def test_logging(config):
-    config.logger.info("info")
+def test_config_logger():
+    config = Config.generate("tests/data/test.config.toml", silent=False, extra_config={})
+    config.logger.info("logger test")
+    assert len(config.logger.handlers) == 2
+    assert config.log_settings.log_file.exists()
 
+    new_config = Config.generate()
+    new_config.logger.info("next logger test")
+    assert len(new_config.logger.handlers) == 2
+    assert new_config.log_settings.log_file.exists()
+
+
+def test_logging():
+    config = Config.generate("tests/data/test.config.toml", silent=False, extra_config={})
+
+    config.logger.info("info")
     with open(config.log_settings.log_file, mode="r") as f:
         logs = [line for line in f]
         assert "info" in logs[-1]

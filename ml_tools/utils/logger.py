@@ -1,8 +1,10 @@
 import logging
 from datetime import datetime, timedelta, timezone
-from logging import Formatter, Logger, StreamHandler, getLogger
+from logging import Formatter, Logger, StreamHandler, basicConfig, getLogger
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+
+HANDLER_FORMAT = "%(asctime)s [%(levelname)8s] %(name)15s - %(message)s"
 
 
 def get_json_liner(name: str, logfile: str = "") -> Logger:
@@ -22,7 +24,7 @@ def get_json_liner(name: str, logfile: str = "") -> Logger:
         JST = timezone(timedelta(hours=+9), "JST")
         now = datetime.now(JST)
         now = datetime(now.year, now.month, now.day, now.hour, now.minute, 0, tzinfo=JST)
-        log_dir = Path("./logs") / now.strftime("%Y%m%d%H%M%S")
+        log_dir = Path("./logs") / now.strftime("%Y%m%d%H%M%S%f")
         log_dir.mkdir(parents=True, exist_ok=True)
         logfile = name
     else:
@@ -39,13 +41,12 @@ def get_json_liner(name: str, logfile: str = "") -> Logger:
     logger.setLevel(logging.DEBUG)
 
     if logger.hasHandlers():
-        handler_format = Formatter("")
         # --------------------------------
         # 3. log file configuration
         # --------------------------------
         fh = RotatingFileHandler(str(log_dir / name), maxBytes=2**30, backupCount=3000)
         fh.setLevel(logging.DEBUG)
-        fh.setFormatter(handler_format)
+        fh.setFormatter(Formatter(""))
         logger.addHandler(fh)
 
         # --------------------------------
@@ -53,7 +54,7 @@ def get_json_liner(name: str, logfile: str = "") -> Logger:
         # --------------------------------
         er_fh = RotatingFileHandler(str(log_dir / name), maxBytes=2**30, backupCount=3000)
         er_fh.setLevel(logging.ERROR)
-        er_fh.setFormatter(handler_format)
+        er_fh.setFormatter(Formatter(""))
         logger.addHandler(er_fh)
 
     return logger
@@ -70,14 +71,16 @@ def get_logger(name, logfile: str = "", silent: bool = False, loglevel: int = lo
         Logger
     """
 
+    logger = getLogger(name)
+
     # --------------------------------
-    # 0. mkdir
+    # 1. mkdir
     # --------------------------------
     if logfile == "":
         JST = timezone(timedelta(hours=+9), "JST")
         now = datetime.now(JST)
         now = datetime(now.year, now.month, now.day, now.hour, now.minute, 0, tzinfo=JST)
-        log_dir = Path("./logs") / now.strftime("%Y%m%d%H%M%S")
+        log_dir = Path("./logs") / now.strftime("%Y%m%d%H%M%S%f")
         log_dir.mkdir(parents=True, exist_ok=True)
         logfile = name
     else:
@@ -86,30 +89,30 @@ def get_logger(name, logfile: str = "", silent: bool = False, loglevel: int = lo
         logfile = Path(logfile).name
 
     # --------------------------------
-    # 1. logger configuration
+    # 2. remove handlers
     # --------------------------------
-    logger = getLogger(name)
-    for h in logger.handlers:
-        logger.removeHandler(h)
+    while len(logger.handlers) > 0:
+        for h in logger.handlers:
+            logger.removeHandler(h)
+            h.close()
     logger.setLevel(loglevel)
-
-    handler_format = Formatter("%(asctime)s [%(levelname)8s] %(name)15s - %(message)s")
+    logger.propagate = False
 
     # --------------------------------
-    # 2. handler configuration
+    # 3. handler configuration
     # --------------------------------
     if not silent:
         stream_handler = StreamHandler()
         stream_handler.setLevel(loglevel)
-        stream_handler.setFormatter(handler_format)
+        stream_handler.setFormatter(Formatter(HANDLER_FORMAT))
         logger.addHandler(stream_handler)
 
     # --------------------------------
-    # 3. log file configuration
+    # 4. log file configuration
     # --------------------------------
-    fh = RotatingFileHandler(str(log_dir / logfile), maxBytes=3145728, backupCount=3000)
+    fh = RotatingFileHandler(str(log_dir / logfile), maxBytes=3145728, backupCount=3000, encoding="utf-8")
     fh.setLevel(loglevel)
-    fh.setFormatter(handler_format)
+    fh.setFormatter(Formatter(HANDLER_FORMAT))
     logger.addHandler(fh)
 
     return logger
